@@ -1,0 +1,49 @@
+---
+title: "Practical Machine Learning Course Project"
+author: "Liam Roche"
+date: "Saturday, November 22, 2014"
+output: html_document
+---
+```{r, echo=FALSE}
+require(lattice, quietly=T)
+load("rf.cv.Robj")
+load("rf.boot.Robj")
+load("training.Robj")
+```
+
+# Executive Summary
+
+This project aimed to predict mode of exercise from the dynamical data gathered from subjects. The data gatherered proved highly suited to purpose, allowing near perfect prediction of mode from the measured parameters. The model which proved successful was a cross-validated, tuned random forest model with `r rf.cv$finalModel$ntree` trees, trained using the `r ncol(training) - 1` features that were left after those which provided little or no useful information were discarded. The final model utilised `r rf.cv$finalModel$mtry` predictors of differing importance. The accuracy predicted using cross-validation was `r rf.cv$results$Accuracy[1] * 100`% The model generated was successful in predicting all of the test examples accurately.
+
+## Pre-processing
+
+The raw data for this project comprises 159 predictors (36 factors and 123 numerical features) and a single target, a factor with 4 levels. But many of the features are of little or no use to generating a general model, because they have little variation, or because they are irrelevant, redundant or nearly redundant. The first step is to remove these data. The simplest way to reduce the data turned out to be to identify which features were almost constant, with over 95% of the values being the same. This was the case for 102 of the variables. In addition the first 6 variables appear to be a type inappropriate for use as predictors, referring to time and ID information for experiments. This leaves 50 predictors.
+
+## Model creation and testing
+It was decided to use a random forest model generated using caret. The tunable parameter is mtry, which determines the number of variables randomly sampled as candidates at each split. Tuning optimised this parameter to 27, but there was negligeable difference between this and other choices. Cross validation was used to estimate out of sample accuracy. 10-repetition cross validation was performed, each time selecting 75% of the instances for training and 25% of them for testing, using the trControl parameter of caret's train function.
+
+Examining the model generated showed that all 52 features were being used to a significant in the model, with roll_belt being the most important of all.
+
+```{r, echo=FALSE}
+barchart(rf.cv$finalModel$importance, main="Importance of all variables used in random forest model", scales=list(cex=0.5))
+```
+
+Cross-validation predicted extremely little dependence of accuracy on the choice of mtry, with mtry=27 being very marginally best.
+
+
+```{r, echo=FALSE}
+plot(rf.cv, main="Tuning mtry parameter using a 10-fold cross validation")
+
+```
+
+For comparison a bootstrap was performed using 25 bootstraps giving estimate of out of bag accuracy. Tuning this time found mtr=2 to be marginally superior, with very similar accuracy for mtry=27. 
+
+```{r, echo=FALSE}
+plot(rf.boot, main="Tuning mtry parameter using a 25-fold bootstrap validation")
+```
+
+The high predicted accuracy for the cross-validated model was confirmed on the 20 blind test examples, where it successfully predicted the target.
+
+## Conclusions
+
+The measured data was very close to entirely sufficient for predicting the required outcome and a random forest model did very well in capturing the relationship between the predictors and the target. Tuning did not prove of much importance in this instance, but in more difficult applications it could prove to be.  Although cross-validation and bootstrap approaches to estimating out of sample error were entirely successful, the former was somewhat quicker and equally accurate in this instance.
